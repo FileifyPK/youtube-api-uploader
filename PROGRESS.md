@@ -84,3 +84,28 @@ youtube-api-upload/
 
 Totals: ~4,100 lines of source, ~3,200 lines of tests + SQL/shell.
 Test suite: 164 tests, all passing.
+
+## 20 Nov 2026 ~22:55 — Setup day: Google side complete, live verification done
+
+- Google Cloud: project verified, API enabled, consent screen scopes
+  added, Desktop OAuth client created, app published to Production
+  (homepage = repo URL, privacy policy = GitHub Pages URL).
+- Muse authorization: consent under fileifypk@gmail.com, code
+  exchanged, refresh token in .env (600, gitignored).
+- Channel verified live: Sacred Knowledge (UCxOd_poXW1Yn_geTd8AqL4A),
+  79 subscribers — via verify_channel() with expected_channel_id.
+- Live token refresh verified (acceptance item 5 now PASS, not
+  PARTIAL): refresh_access_token() succeeded repeatedly.
+- Proxy fix (auth.py): this VM sits behind an egress proxy that
+  MITMs TLS with a custom CA. httplib2 reads neither proxy env vars
+  nor SSL_CERT_FILE, so API calls failed first with SSL
+  WRONG_VERSION_NUMBER, then (after adding ProxyInfo) with
+  CERTIFICATE_VERIFY_FAILED. Fix: _proxy_http() builds a
+  proxy-aware httplib2.Http (PySocks added as a dependency) with
+  ca_certs from SSL_CERT_FILE / REQUESTS_CA_BUNDLE / the system
+  bundle; build_youtube_service wraps it in AuthorizedHttp and
+  passes ONLY http (googleapiclient treats http and credentials as
+  mutually exclusive). Test suite now 165/165.
+- test_no_env_file_exists replaced by
+  test_env_file_not_tracked_by_git: a live .env legitimately exists
+  from setup day on; the invariant is that git never tracks it.

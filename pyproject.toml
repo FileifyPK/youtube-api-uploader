@@ -13,6 +13,10 @@ dependencies = [
     "google-auth-oauthlib>=1.2",
     "psycopg[binary]>=3.2",
     "requests>=2.32",
+    # httplib2 needs PySocks for proxy support (ProxyInfo constants);
+    # without it, _proxy_http() cannot build a transport and API
+    # calls fail behind a proxy with SSL WRONG_VERSION_NUMBER.
+    "PySocks>=1.7.1",
 ]
 
 [project.optional-dependencies]

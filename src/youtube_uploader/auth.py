@@ -24,13 +24,17 @@ the other agents.
 from __future__ import annotations
 
 import logging
+import os
 from typing import Any
-from urllib.parse import urlencode
+from urllib.parse import urlencode, urlparse
 
+import httplib2
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
+from google_auth_httplib2 import AuthorizedHttp
 from google_auth_oauthlib.flow import Flow
 from googleapiclient.discovery import build as _discovery_build
+from httplib2 import socks
 
 from youtube_uploader.config import Settings
 
@@ -174,12 +178,78 @@ def refresh_access_token(settings: Settings) -> Credentials:
     return creds
 
 
-def build_youtube_service(credentials: Any) -> Any:
+def _ca_bundle() -> str | None:
+    """CA bundle httplib2 should trust, if one is configured.
+
+    This VM's egress proxy MITMs TLS with a custom CA whose bundle
+    is exposed via SSL_CERT_FILE / REQUESTS_CA_BUNDLE. httplib2's
+    own bundled cacerts.txt lacks it, so without this every API
+    call fails with CERTIFICATE_VERIFY_FAILED (while requests,
+    which reads those env vars, works fine).
+    """
+    for var in ("SSL_CERT_FILE", "REQUESTS_CA_BUNDLE", "CURL_CA_BUNDLE"):
+        path = os.environ.get(var)
+        if path and os.path.exists(path):
+            return path
+    system = "/etc/ssl/certs/ca-certificates.crt"
+    if os.path.exists(system):
+        return system
+    return None
+
+
+def _proxy_http() -> Any | None:
+    """Build a proxy-aware httplib2 transport from env vars, if any.
+
+    googleapiclient/httplib2 does NOT read HTTPS_PROXY/HTTP_PROXY
+    automatically (unlike requests), so behind a proxy every API call
+    fails with ``ssl.SSLError: WRONG_VERSION_NUMBER`` — the direct
+    connection hits the proxy, which answers plain HTTP. This parses
+    the proxy URL (host, port, optional credentials — never logged)
+    and returns an httplib2.Http configured for it, or None when no
+    usable proxy is configured.
+    """
+    proxy_url = (
+        os.environ.get("HTTPS_PROXY")
+        or os.environ.get("https_proxy")
+        or os.environ.get("HTTP_PROXY")
+        or os.environ.get("http_proxy")
+    )
+    if not proxy_url:
+        return None
+    parsed = urlparse(proxy_url)
+    if not parsed.hostname or not parsed.port:
+        log.warning("Proxy URL set but has no host/port; ignoring proxy")
+        return None
+    proxy_info = httplib2.ProxyInfo(
+        socks.PROXY_TYPE_HTTP,
+        parsed.hostname,
+        parsed.port,
+        proxy_user=parsed.username or None,
+        proxy_pass=parsed.password or None,
+    )
+    # ca_certs=None falls back to httplib2's bundled cacerts.txt.
+    return httplib2.Http(proxy_info=proxy_info, ca_certs=_ca_bundle())
+
+
+def build_youtube_service(credentials: Any, http: Any | None = None) -> Any:
     """Build the YouTube Data API v3 service from credentials.
 
     ``credentials`` is injected so tests can pass fakes; production
     passes the result of :func:`refresh_access_token`.
+
+    When an HTTP(S) proxy is configured in the environment, the
+    service is built over a proxy-aware transport (httplib2 does not
+    read proxy env vars on its own). ``http`` may be passed
+    explicitly (tests); passing it skips the proxy lookup. NOTE:
+    googleapiclient's build() treats ``http`` and ``credentials``
+    as mutually exclusive, so the proxy path wraps the transport in
+    AuthorizedHttp and passes ONLY ``http``.
     """
+    if http is None:
+        http = _proxy_http()
+    if http is not None:
+        http = AuthorizedHttp(credentials, http=http)
+        return _discovery_build("youtube", "v3", http=http)
     return _discovery_build("youtube", "v3", credentials=credentials)
 
 

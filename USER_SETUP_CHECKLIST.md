@@ -14,7 +14,7 @@ publish — needs homepage + privacy policy URLs; Muse created them).
 | 1 | Google Cloud project "Sacred Knowledge Uploads" created | COMPLETED | Owner created it; verified in Console 20 Nov. Project ID: sacredknowledgeuploads, number 685982142557 |
 | 2 | YouTube Data API v3 enabled | COMPLETED | Already enabled (owner); verified in Enabled APIs list |
 | 3 | OAuth consent screen (External), scopes youtube.upload + youtube.force-ssl only | COMPLETED | Screen already existed (app name "SacredKnowledgeUploadManager", owner chose it); scopes were NONE — Muse added exactly the two required scopes, saved 20 Nov |
-| 4 | Consent screen published to Production | IN PROGRESS | Blocked: Google requires homepage URL + privacy policy URL on Branding page. Muse created privacy-policy.html (repo, GitHub Pages) — homepage = repo URL. Publishing after URLs are entered. If Google demands verification, report it — do not ignore |
+| 4 | Consent screen published to Production | COMPLETED | Published 20 Nov ~22:40. Homepage = repo URL, privacy policy = GitHub Pages URL (both live; github.com + fileifypk.github.io added as Authorized domains). Google shows a verification banner ("Your app requires verification") — NOT submitted; for personal single-owner use the consent warning is bypassable, verification is optional pending owner decision |
 | 5 | Desktop OAuth client "Sacred Knowledge Uploader" created | COMPLETED | Created 20 Nov via Console; Enabled. Client ID: 685982142557-edlj1t7e5jman8u8uk81v75agl2jejf3.apps.googleusercontent.com |
 | 6 | Client Secret stored securely (VM .env, 600, gitignored — never chat/GitHub) | COMPLETED | Stored 20 Nov in ~/workspace/youtube-api-upload/.env (mode 600, git-ignored, verified not tracked) |
 
@@ -22,8 +22,8 @@ publish — needs homepage + privacy policy URLs; Muse created them).
 
 | # | Task | Status | Notes |
 |---|------|--------|-------|
-| 7 | Muse authorization (consent Allow + refresh token) | NOT STARTED | After Production publish (or test-user fallback); consent via managed browser, code exchanged by auth.py, token to .env |
-| 8 | Channel verification (channels.list mine=True = Sacred Knowledge) | NOT STARTED | Before considering OAuth setup complete |
+| 7 | Muse authorization (consent Allow + refresh token) | COMPLETED | Consent 20 Nov ~22:41 under fileifypk@gmail.com (both scopes shown, Allow clicked); code exchanged via auth.py; refresh token stored in .env (600) |
+| 8 | Channel verification (channels.list mine=True = Sacred Knowledge) | COMPLETED | Verified live 20 Nov ~22:55 via verify_channel(): Sacred Knowledge, UCxOd_poXW1Yn_geTd8AqL4A, 79 subscribers |
 | 9 | Meem authorization (own refresh token, own vault) | NOT STARTED | Later — Meem is on a separate machine; method to be decided with owner |
 
 ## Neon PostgreSQL
@@ -38,7 +38,7 @@ publish — needs homepage + privacy policy URLs; Muse created them).
 
 | # | Task | Status | Notes |
 |---|------|--------|-------|
-| 13 | Live token refresh works | NOT STARTED | Setup day, after Muse authorization |
+| 13 | Live token refresh works | COMPLETED | refresh_access_token() verified live 20 Nov (3 successful refreshes during setup). Proxy fix applied same night: build_youtube_service is now proxy-aware (PySocks + egress CA bundle from SSL_CERT_FILE); 165/165 tests pass |
 | 14 | Live DB migration + locking against real Neon | NOT STARTED | Setup day, after Neon credentials |
 | 15 | Kill switch OFF confirmed in live DB | NOT STARTED | Must be OFF before any further step |
 

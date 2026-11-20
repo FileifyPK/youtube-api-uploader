@@ -38,9 +38,31 @@ def _read_text(path):
         return None  # binary / unreadable: skipped
 
 
-def test_no_env_file_exists():
-    env_files = [p for p in _repo_files() if p.name == ".env"]
-    assert env_files == []
+def test_env_file_not_tracked_by_git():
+    """A live .env may exist locally (setup day onwards) but must
+    never be tracked by git or committed. The old
+    test_no_env_file_exists asserted no .env exists at all; that
+    broke once the real setup stored the refresh token in .env
+    (20 Nov 2026). The invariant that matters is: git must not
+    track it, and .gitignore must cover it."""
+    import subprocess
+
+    tracked = subprocess.run(
+        ["git", "ls-files", ".env"],
+        cwd=REPO_ROOT,
+        capture_output=True,
+        text=True,
+        timeout=30,
+    )
+    assert tracked.stdout.strip() == ""
+    ignored = subprocess.run(
+        ["git", "check-ignore", ".env"],
+        cwd=REPO_ROOT,
+        capture_output=True,
+        text=True,
+        timeout=30,
+    )
+    assert ignored.returncode == 0
 
 
 def test_gitignore_lists_env():

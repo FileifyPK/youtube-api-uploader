@@ -157,7 +157,10 @@ def test_refresh_access_token_missing_credentials_names_field_not_value():
 # --- build_youtube_service -------------------------------------------------
 
 
-def test_build_youtube_service_uses_discovery_build():
+def test_build_youtube_service_uses_discovery_build(monkeypatch):
+    # No proxy configured -> plain discovery build, no http kwarg.
+    for var in ("HTTPS_PROXY", "https_proxy", "HTTP_PROXY", "http_proxy"):
+        monkeypatch.delenv(var, raising=False)
     fake_creds = MagicMock()
     with patch(
         "youtube_uploader.auth._discovery_build",
@@ -167,6 +170,42 @@ def test_build_youtube_service_uses_discovery_build():
     mock_build.assert_called_once_with(
         "youtube", "v3", credentials=fake_creds
     )
+
+
+def test_build_youtube_service_uses_proxy_when_configured(monkeypatch, tmp_path):
+    # httplib2 does not read proxy env vars on its own; the service
+    # must be built over a proxy-aware transport (else SSL
+    # WRONG_VERSION_NUMBER behind this VM's proxy). googleapiclient
+    # treats http and credentials as mutually exclusive, so the
+    # proxy path wraps the transport in AuthorizedHttp and passes
+    # ONLY http. The transport must also trust the egress CA bundle
+    # (else CERTIFICATE_VERIFY_FAILED).
+    import httplib2
+    from google_auth_httplib2 import AuthorizedHttp
+
+    monkeypatch.setenv("HTTPS_PROXY", "http://proxy.example:8080")
+    for var in ("https_proxy", "HTTP_PROXY", "http_proxy"):
+        monkeypatch.delenv(var, raising=False)
+    ca_file = tmp_path / "ca-bundle.pem"
+    ca_file.write_text("fake-ca")
+    monkeypatch.setenv("SSL_CERT_FILE", str(ca_file))
+    for var in ("REQUESTS_CA_BUNDLE", "CURL_CA_BUNDLE"):
+        monkeypatch.delenv(var, raising=False)
+    fake_creds = MagicMock()
+    with patch(
+        "youtube_uploader.auth._discovery_build",
+        return_value="SERVICE",
+    ) as mock_build:
+        assert auth.build_youtube_service(fake_creds) == "SERVICE"
+    mock_build.assert_called_once()
+    _, kwargs = mock_build.call_args
+    assert "credentials" not in kwargs
+    http = kwargs["http"]
+    assert isinstance(http, AuthorizedHttp)
+    assert isinstance(http.http, httplib2.Http)
+    assert http.http.proxy_info.proxy_host == "proxy.example"
+    assert http.http.proxy_info.proxy_port == 8080
+    assert http.http.ca_certs == str(ca_file)
 
 
 # --- verify_channel --------------------------------------------------------
