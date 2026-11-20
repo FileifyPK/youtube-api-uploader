@@ -1,0 +1,26 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "sacred-knowledge-youtube-uploader"
+version = "0.1.0"
+description = "Sacred Knowledge — YouTube Data API v3 resumable uploader with a shared Neon PostgreSQL job queue. Private-by-default, kill-switch gated, dry-run safe."
+requires-python = ">=3.11"
+dependencies = [
+    "google-api-python-client>=2.150",
+    "google-auth>=2.35",
+    "google-auth-oauthlib>=1.2",
+    "psycopg[binary]>=3.2",
+    "requests>=2.32",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8.0"]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]

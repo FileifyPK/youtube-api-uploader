@@ -1,0 +1,24 @@
+# Secrets — never commit
+.env
+.env.*
+# ...except the example file, which holds placeholders only
+!.env.example
+*.pem
+*.key
+client_secret*.json
+token*.json
+credentials*.json
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+build/
+dist/
+
+# Test / local
+.pytest_cache/
+.coverage
+*.log
