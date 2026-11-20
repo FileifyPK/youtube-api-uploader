@@ -30,17 +30,17 @@ publish — needs homepage + privacy policy URLs; Muse created them).
 
 | # | Task | Status | Notes |
 |---|------|--------|-------|
-| 10 | Neon free account + project + database created | UNKNOWN | Owner has not said; to check — if missing, Muse creates via browser (Free plan, no card) |
-| 11 | Restricted per-agent database users created | NOT STARTED | SQL prepared by Muse; privileged SQL via Neon SQL Editor |
-| 12 | Free-plan limits + no-card requirement re-verified on setup day | NOT STARTED | Whatever Neon shows on setup day governs |
+| 10 | Neon free account + project + database created | COMPLETED | Created 20 Nov via fileifypk Google SSO: project sacred-knowledge-upload-queue (cold-rice-96435730), AWS US East 2, Free plan, Postgres 18, DB sacred_knowledge, owner role sacred_knowledge_owner. No card/phone requested |
+| 11 | Restricted per-agent database users created | COMPLETED | Roles muse + meem created 20 Nov (scripts/setup_neon.py): CRUD on app tables, SELECT-only on system_settings (kill switch read-only for agents), sequences + default privileges. Passwords generated, stored in .env.owner (600); muse DSN in .env DATABASE_URL. Meem's password HELD here until owner decides delivery |
+| 12 | Free-plan limits + no-card requirement re-verified on setup day | COMPLETED | Free plan confirmed at signup; no card on file anywhere, so no charge is possible. Documented free limits: 1 GB storage, 100 CU-hours/month (plan v2 §5); usage visible in Neon console |
 
 ## Verification
 
 | # | Task | Status | Notes |
 |---|------|--------|-------|
 | 13 | Live token refresh works | COMPLETED | refresh_access_token() verified live 20 Nov (3 successful refreshes during setup). Proxy fix applied same night: build_youtube_service is now proxy-aware (PySocks + egress CA bundle from SSL_CERT_FILE); 165/165 tests pass |
-| 14 | Live DB migration + locking against real Neon | NOT STARTED | Setup day, after Neon credentials |
-| 15 | Kill switch OFF confirmed in live DB | NOT STARTED | Must be OFF before any further step |
+| 14 | Live DB migration + locking against real Neon | COMPLETED | Migration 001 applied live 20 Nov (7 tables); FOR UPDATE SKIP LOCKED claim test live: exactly one winner between two concurrent connections. Direct TCP to Neon is intercepted by the VM egress gateway — all DB access goes through a local CONNECT tunnel (scripts/neon_tunnel.py; pooler tunnel runs as systemd service neon-tunnel-pooler on 127.0.0.1:15433; DSNs keep the Neon hostname for SNI + hostaddr=127.0.0.1) |
+| 15 | Kill switch OFF confirmed in live DB | COMPLETED | global_upload_enabled = 'false' verified live 20 Nov (owner + muse-role reads) |
 
 ## Approvals (later — each needs the owner's separate explicit yes)
 

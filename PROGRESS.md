@@ -109,3 +109,35 @@ Test suite: 164 tests, all passing.
 - test_no_env_file_exists replaced by
   test_env_file_not_tracked_by_git: a live .env legitimately exists
   from setup day on; the invariant is that git never tracks it.
+
+## 20 Nov 2026 ~23:05 — Setup day: Neon complete, all acceptance live-verified
+
+- Neon account created via fileifypk Google SSO (Free plan, no card
+  or phone requested). Project sacred-knowledge-upload-queue
+  (cold-rice-96435730), AWS US East 2, Postgres 18, DB
+  sacred_knowledge, owner role sacred_knowledge_owner.
+- Migration 001 applied live (7 tables). Restricted roles muse +
+  meem created by scripts/setup_neon.py (CRUD on app tables,
+  SELECT-only on system_settings, sequences + default privileges).
+  Passwords generated at setup, stored in .env.owner (600);
+  muse DSN in .env DATABASE_URL. Meem's password is HELD in
+  .env.owner until the owner decides how it reaches Meem's machine.
+- Kill switch verified OFF in the live DB (both owner and muse
+  reads). Muse role verified: can CRUD jobs, CANNOT write
+  system_settings (least privilege).
+- Claim-lock test live: two concurrent connections racing the same
+  FOR UPDATE SKIP LOCKED claim — exactly one winner. Acceptance
+  item 4 (live DB locking) now PASS. With live token refresh
+  (item 5) also verified, acceptance is 11/11.
+- Networking (important): this VM's outbound TCP is intercepted —
+  direct psycopg to Neon:5432 gets an HTTP response from the egress
+  gateway. The egress proxy DOES allow HTTP CONNECT to Neon, so
+  all DB access goes through a local CONNECT tunnel
+  (scripts/neon_tunnel.py). Neon routes by TLS SNI, so DSNs keep
+  the real Neon hostname (with the local tunnel port) and add
+  hostaddr=127.0.0.1; without the hostname Neon answers
+  "Endpoint ID is not specified". The pooler tunnel runs as a
+  persistent systemd service (neon-tunnel-pooler, 127.0.0.1:15433);
+  the user manager fails in this VM so it is a SYSTEM service
+  (unit in /etc is ephemeral — reinstall from the repo copy after
+  a VM replacement; the proxy env file lives in $HOME).

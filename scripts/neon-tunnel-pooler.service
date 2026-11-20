@@ -1,0 +1,43 @@
+# Persistent Neon Postgres tunnel (pooler) for the Sacred Knowledge
+# uploader — SYSTEM systemd service.
+#
+# Why a system service: the user manager (user@0.service) fails to
+# start in this VM, so `systemctl --user` cannot be used. The unit
+# lives in /etc (ephemeral across VM replacements) — the canonical
+# copy is THIS file in the repo; after a VM replacement, re-run:
+#   cp scripts/neon-tunnel-pooler.service /etc/systemd/system/
+#   systemctl daemon-reload && systemctl enable --now neon-tunnel-pooler.service
+# The proxy env file (~/.config/neon-tunnel/proxy.env, mode 600)
+# survives in $HOME, so only the unit copy is needed.
+#
+# Install (first time, paths are for this VM; $HOME = /home/hatch):
+#   mkdir -p ~/.config/neon-tunnel
+#   # proxy.env holds ONE line: HTTPS_PROXY=<the VM egress proxy URL>
+#   # Write it from the live environment (never print the URL):
+#   python3 -c "import os; open('/home/hatch/.config/neon-tunnel/proxy.env','w').write('HTTPS_PROXY=' + os.environ['HTTPS_PROXY'] + chr(10))"
+#   chmod 600 ~/.config/neon-tunnel/proxy.env
+#   cp scripts/neon-tunnel-pooler.service /etc/systemd/system/
+#   systemctl daemon-reload
+#   systemctl enable --now neon-tunnel-pooler.service
+#   systemctl status neon-tunnel-pooler.service
+#
+# The service listens on 127.0.0.1:15433 and forwards to the Neon
+# pooler via HTTP CONNECT. DATABASE_URL in .env points at it
+# (host = Neon pooler hostname, port 15433, hostaddr=127.0.0.1 —
+# the hostname is required for Neon's SNI routing).
+# Restart=always recovers from crashes; enable makes it start at boot.
+
+[Unit]
+Description=Neon Postgres tunnel (pooler) for Sacred Knowledge uploader
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+EnvironmentFile=/home/hatch/.config/neon-tunnel/proxy.env
+ExecStart=/home/hatch/workspace/youtube-api-upload/.venv/bin/python /home/hatch/workspace/youtube-api-upload/scripts/neon_tunnel.py --listen-port 15433 --target-host ep-sweet-shadow-be2vgdb8-pooler.c-9.us-east-2.aws.neon.tech
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=default.target
